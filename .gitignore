@@ -1,0 +1,10 @@
+# Rider
+.idea
+
+
+# User-specific files
+*.user
+
+# Build results
+Weekend/bin
+Weekend/obj
