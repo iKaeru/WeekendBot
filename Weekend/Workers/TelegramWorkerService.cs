@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
-using Telegram.Bot.Types;
+using Weekend.Helpers;
 using Weekend.Loggers;
 
 // Disable obsolete warnings
@@ -28,7 +28,6 @@ namespace Weekend.Workers
             while (true)
             {
                 ReceiveUpdates();
-                // ReceiveMessage();
                 Thread.Sleep(int.MaxValue);
             }
         }
@@ -39,32 +38,38 @@ namespace Weekend.Workers
             _botClient.StartReceiving();
         }
 
-        private void ReceiveMessage()
+        private async void Bot_OnUpdate(object sender, UpdateEventArgs update)
         {
-            _botClient.OnMessage += Bot_OnMessage;
-            _botClient.StartReceiving();
+            if (update.Update.Message == null)
+            {
+                Console.WriteLine("Houston, we have a problem");
+                return;
+            }
+
+            if (update.Update.Message.Chat.Id == update.Update.Message.From?.Id)
+            {
+                await ProcessPersonalMessage(update);
+            }
+            else
+            {
+                await ProcessGroupMessage(update);
+            }
+
+            if (update.Update.Message.NewChatMembers != null)
+            {
+                // await bot.sendMessage(message.chat.id, message.new_chat_member.username + " joined!");
+            }
         }
 
-        private async void Bot_OnUpdate(object sender, UpdateEventArgs update)
+        private async Task ProcessPersonalMessage(UpdateEventArgs update)
+        {
+        }
+
+        private async Task ProcessGroupMessage(UpdateEventArgs update)
         {
             if (update.Update?.Message?.Text != null)
             {
                 await FindWordsAndAnswer(update);
-            }
-        }
-
-        private async void Bot_OnMessage(object sender, MessageEventArgs e)
-        {
-            Console.WriteLine($"Received message = {e.Message}, chat id = {e.Message.Chat.Id}");
-
-            if (e.Message.NewChatMembers != null)
-            {
-                // await bot.sendMessage(message.chat.id, message.new_chat_member.username + " joined!");
-            }
-
-            if (e.Message.Text != null)
-            {
-                await FindWordsAndAnswer(e);
             }
         }
 
@@ -73,14 +78,12 @@ namespace Weekend.Workers
             var messageText = e.Message.Text.ToLower();
             if (messageText.Contains("щёлк") || messageText.Contains("щелк") || messageText.Contains("щелч"))
             {
-                await SendReply(e, "Флип");
-                // maybe add random emodji
+                await SendReply(e, $"Флип {Emojis.GetRandomHexadecimalEmoji()}");
             }
 
             if (messageText.Contains("флип"))
             {
-                await SendReply(e, "Щёлк");
-                // maybe add random emodji
+                await SendReply(e, $"Щёлк {Emojis.GetRandomHexadecimalEmoji()}");
             }
         }
 
