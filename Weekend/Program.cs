@@ -1,5 +1,4 @@
-﻿using System;
-using Weekend.Loggers;
+﻿using Weekend.Loggers;
 using Weekend.Workers;
 
 namespace Weekend
