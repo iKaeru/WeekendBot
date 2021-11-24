@@ -39,12 +39,12 @@ namespace Weekend.Helpers
             var users = UsersToProcess
                 .Where(user => currentTime.Subtract(user.AddedAt) > AuthAvailableInterval)
                 .ToList();
-            
+
             foreach (var user in users)
             {
                 RemoveAuthorizedUser(user);
             }
-            
+
             return users;
         }
     }

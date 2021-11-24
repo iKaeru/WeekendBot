@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -14,7 +15,7 @@ using Weekend.Loggers;
 // prod bot id = 2044568774
 
 // Disable obsolete warnings
-#pragma warning disable 612, 618
+// #pragma warning disable 612, 618
 
 // https://github.com/TelegramBots/Telegram.Bot.Examples
 namespace Weekend.Workers
@@ -34,7 +35,7 @@ namespace Weekend.Workers
             _botClient = new TelegramBotClient(BotToken);
             _logger = logger;
             StrictChatPermissions.CanSendMessages = false;
-            EnableAllChatPermissions();
+            CreateAllChatPermissionsVariable();
         }
 
         public void ExecuteCore()
@@ -63,7 +64,14 @@ namespace Weekend.Workers
                 tasksList.Add(_botClient.DeleteMessageAsync(user.ChatId, user.CaptchaMessageId));
             }
 
-            await Task.WhenAll(tasksList);
+            try
+            {
+                await Task.WhenAll(tasksList);
+            }
+            catch (ApiRequestException)
+            {
+                // If message was already deleted - OK!
+            }
         }
 
         private async void Bot_OnUpdate(object sender, UpdateEventArgs update)
@@ -119,7 +127,7 @@ namespace Weekend.Workers
 
                 await _botClient.SendTextMessageAsync(
                     chatId: callbackQuery.Message.Chat,
-                    text: InfoMessages.CreateGreetingNewMemberMsg(InfoMessages.GetUserInfo(userToAuthorize)));
+                    text: InfoMessages.CreateGreetingNewMemberMsg(userToAuthorize.GetUserAuthMessage()));
 
                 UsersAuthorization.RemoveAuthorizedUser(userToAuthorize);
                 await _botClient.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
@@ -140,8 +148,10 @@ namespace Weekend.Workers
 
             var users = UsersAuthorization.AddNewUsersToAuthorizeProcess(message);
             var inlineKeyboard = CreateInlineButtonsForReply();
+            var newUser = usersToAdd[0];
+
             var sendMessage = await _botClient.SendTextMessageAsync(chatId: message.Chat.Id,
-                text: "Докажи что ты не бот",
+                text: InfoMessages.CreateCaptchaMessage(newUser.GetUserMessage()),
                 replyMarkup: inlineKeyboard);
 
             foreach (var user in users)
@@ -168,6 +178,10 @@ namespace Weekend.Workers
 
         private async Task ProcessPersonalMessage(Message message)
         {
+            if (message?.Text != null)
+            {
+                await ReplyInPersonalChat(message);
+            }
         }
 
         private async Task ProcessGroupMessage(Message message)
@@ -198,6 +212,15 @@ namespace Weekend.Workers
             }
         }
 
+        private async Task ReplyInPersonalChat(Message message)
+        {
+            var messageText = message.Text.ToLower();
+            if (messageText.Contains("ping") || messageText.Contains("пинг"))
+            {
+                await SendReply(message, $"Я живой {Emojis.GetRandomHexadecimalEmoji()}!");
+            }
+        }
+
         private static bool IsReplyAvailable()
         {
             _currentResponseIndex++;
@@ -217,7 +240,7 @@ namespace Weekend.Workers
             );
         }
 
-        private void EnableAllChatPermissions()
+        private void CreateAllChatPermissionsVariable()
         {
             LiberalChatPermissions.CanInviteUsers = true;
             LiberalChatPermissions.CanSendMessages = true;
