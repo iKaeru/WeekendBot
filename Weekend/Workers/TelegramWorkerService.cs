@@ -1,15 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
-using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
-using Weekend.Helpers;
 using Weekend.Loggers;
 
 // prod bot id = 2044568774
@@ -23,19 +18,18 @@ namespace Weekend.Workers
     public class TelegramWorkerService
     {
         private static ITelegramBotClient _botClient;
+        private readonly UsersWorker _usersWorker;
         private static Logger _logger;
         private static readonly string BotToken = Environment.GetEnvironmentVariable("token");
-        private static readonly ChatPermissions StrictChatPermissions = new ChatPermissions();
-        private static readonly ChatPermissions LiberalChatPermissions = new ChatPermissions();
         private static int MaxResponseSkip = 3;
         private static int _currentResponseIndex = 0;
 
         public TelegramWorkerService(Logger logger)
         {
             _botClient = new TelegramBotClient(BotToken);
+            _usersWorker = new UsersWorker(_botClient);
+            TextsWorker.Init(_botClient);
             _logger = logger;
-            StrictChatPermissions.CanSendMessages = false;
-            CreateAllChatPermissionsVariable();
         }
 
         public void ExecuteCore()
@@ -53,30 +47,9 @@ namespace Weekend.Workers
             _botClient.StartReceiving();
         }
 
-        private async Task KickUsersThatNotAuthorizedInTime()
-        {
-            var users = UsersAuthorization.FindAndDeleteOutdatedAuthUsers();
-            var tasksList = new List<Task>();
-            foreach (var user in users)
-            {
-                tasksList.Add(_botClient.KickChatMemberAsync(
-                    user.ChatId, user.UserId, DateTime.Now, true));
-                tasksList.Add(_botClient.DeleteMessageAsync(user.ChatId, user.CaptchaMessageId));
-            }
-
-            try
-            {
-                await Task.WhenAll(tasksList);
-            }
-            catch (ApiRequestException)
-            {
-                // If message was already deleted - OK!
-            }
-        }
-
         private async void Bot_OnUpdate(object sender, UpdateEventArgs update)
         {
-            await KickUsersThatNotAuthorizedInTime();
+            await _usersWorker.KickUsersThatNotAuthorizedInTime();
             switch (update.Update.Type)
             {
                 case UpdateType.Message:
@@ -86,7 +59,7 @@ namespace Weekend.Workers
                 }
                 case UpdateType.CallbackQuery:
                 {
-                    await BotOnCallbackQueryReceived(update.Update.CallbackQuery);
+                    await _usersWorker.BotOnCallbackQueryReceived(update.Update.CallbackQuery);
                     break;
                 }
                 default:
@@ -101,123 +74,19 @@ namespace Weekend.Workers
         {
             if (message.NewChatMembers != null)
             {
-                await CreateCaptchaForNewMember(message);
+                await _usersWorker.CreateCaptchaForNewMember(message);
             }
 
-            if (message.Chat.Id == message.From?.Id)
+            if (message.Text != null)
             {
-                await ProcessPersonalMessage(message);
-            }
-            else
-            {
-                await ProcessGroupMessage(message);
-            }
-        }
-
-        // Process Inline Keyboard callback data
-        private async Task BotOnCallbackQueryReceived(CallbackQuery callbackQuery)
-        {
-            var userToAuthorize = UsersAuthorization.FindUserToAuthorize(callbackQuery.From.Id);
-
-            if (callbackQuery.Data == "ne_bot" && userToAuthorize != null)
-            {
-                await _botClient.AnswerCallbackQueryAsync(
-                    callbackQueryId: callbackQuery.Id,
-                    text: $"Received {callbackQuery.Data}");
-
-                await _botClient.SendTextMessageAsync(
-                    chatId: callbackQuery.Message.Chat,
-                    text: InfoMessages.CreateGreetingNewMemberMsg(userToAuthorize.GetUserAuthMessage()));
-
-                UsersAuthorization.RemoveAuthorizedUser(userToAuthorize);
-                await _botClient.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
-                await _botClient.RestrictChatMemberAsync(
-                    callbackQuery.Message.Chat.Id, userToAuthorize.UserId, LiberalChatPermissions);
-            }
-        }
-
-        private async Task CreateCaptchaForNewMember(Message message)
-        {
-            var usersToAdd = FilterNonBotUsers(message.NewChatMembers);
-            if (usersToAdd.Length == 0) return;
-
-            foreach (var user in usersToAdd)
-            {
-                await _botClient.RestrictChatMemberAsync(message.Chat.Id, user.Id, StrictChatPermissions);
-            }
-
-            var users = UsersAuthorization.AddNewUsersToAuthorizeProcess(message);
-            var inlineKeyboard = CreateInlineButtonsForReply();
-            var newUser = usersToAdd[0];
-
-            var sendMessage = await _botClient.SendTextMessageAsync(chatId: message.Chat.Id,
-                text: InfoMessages.CreateCaptchaMessage(newUser.GetUserMessage()),
-                replyMarkup: inlineKeyboard);
-
-            foreach (var user in users)
-            {
-                user.CaptchaMessageId = sendMessage.MessageId;
-            }
-        }
-
-        private User[] FilterNonBotUsers(User[] newMembers)
-        {
-            return newMembers.Where(user => !user.IsBot).ToArray();
-        }
-
-        private InlineKeyboardMarkup CreateInlineButtonsForReply()
-        {
-            return new InlineKeyboardMarkup(new[]
-            {
-                new[]
+                if (message.Chat.Id == message.From?.Id)
                 {
-                    InlineKeyboardButton.WithCallbackData("Я не бот", "ne_bot"),
+                    await TextsWorker.ReplyInPersonalChat(message);
                 }
-            });
-        }
-
-        private async Task ProcessPersonalMessage(Message message)
-        {
-            if (message?.Text != null)
-            {
-                await ReplyInPersonalChat(message);
-            }
-        }
-
-        private async Task ProcessGroupMessage(Message message)
-        {
-            if (message?.Text != null)
-            {
-                await FindTextAndReply(message);
-            }
-        }
-
-        private async Task FindTextAndReply(Message message)
-        {
-            if (!IsReplyAvailable())
-                return;
-
-            var messageText = message.Text.ToLower();
-            if (messageText.Contains("щёлк") || messageText.Contains("щелк") || messageText.Contains("щелч")
-                || messageText.Contains("щёлч") || messageText.Contains("счелк") || messageText.Contains("счёлк"))
-            {
-                await SendReply(message, $"Флип {Emojis.GetRandomHexadecimalEmoji()}");
-                return;
-            }
-
-            if (messageText.Contains("флип"))
-            {
-                await SendReply(message, $"Щёлк {Emojis.GetRandomHexadecimalEmoji()}");
-                return;
-            }
-        }
-
-        private async Task ReplyInPersonalChat(Message message)
-        {
-            var messageText = message.Text.ToLower();
-            if (messageText.Contains("ping") || messageText.Contains("пинг"))
-            {
-                await SendReply(message, $"Я живой {Emojis.GetRandomHexadecimalEmoji()}!");
+                else if (IsReplyAvailable())
+                {
+                    await TextsWorker.ReplyInGroupChat(message);
+                }
             }
         }
 
@@ -229,24 +98,6 @@ namespace Weekend.Workers
 
             _currentResponseIndex = 0;
             return true;
-        }
-
-        private async Task SendReply(Message message, string replyMsg)
-        {
-            await _botClient.SendTextMessageAsync(
-                chatId: message.Chat,
-                text: replyMsg,
-                replyToMessageId: message.MessageId
-            );
-        }
-
-        private void CreateAllChatPermissionsVariable()
-        {
-            LiberalChatPermissions.CanInviteUsers = true;
-            LiberalChatPermissions.CanSendMessages = true;
-            LiberalChatPermissions.CanSendMediaMessages = true;
-            LiberalChatPermissions.CanSendOtherMessages = true;
-            LiberalChatPermissions.CanAddWebPagePreviews = true;
         }
     }
 }
