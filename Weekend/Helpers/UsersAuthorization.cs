@@ -15,20 +15,14 @@ namespace Weekend.Helpers
             return UsersToProcess.Find(user => user.UserId == userId);
         }
 
-        public static List<AuthorizationInfo> AddNewUsersToAuthorizeProcess(Message message)
+        public static AuthorizationInfo AddNewUserToAuthorizeProcess(User user, Message message)
         {
-            var addedUsers = new List<AuthorizationInfo>(message.NewChatMembers.Length);
-            foreach (var user in message.NewChatMembers)
-            {
-                var currentUser = new AuthorizationInfo(user, message);
-                addedUsers.Add(currentUser);
-                UsersToProcess.Add(currentUser);
-            }
-
-            return addedUsers;
+            var currentUser = new AuthorizationInfo(user, message);
+            UsersToProcess.Add(currentUser);
+            return currentUser;
         }
 
-        public static void RemoveAuthorizedUser(AuthorizationInfo user)
+        public static void RemoveUserFromAuthorizeProcess(AuthorizationInfo user)
         {
             UsersToProcess.Remove(user);
         }
@@ -42,7 +36,7 @@ namespace Weekend.Helpers
 
             foreach (var user in users)
             {
-                RemoveAuthorizedUser(user);
+                RemoveUserFromAuthorizeProcess(user);
             }
 
             return users;
@@ -58,6 +52,7 @@ namespace Weekend.Helpers
         public string LastName { get; private set; }
         public DateTime AddedAt { get; private set; }
         public int CaptchaMessageId { get; set; }
+        public int InviteMessageId { get; set; }
 
         public AuthorizationInfo(User user, Message message)
         {
@@ -67,6 +62,7 @@ namespace Weekend.Helpers
             LastName = user.LastName;
             AddedAt = DateTime.Now;
             ChatId = message.Chat.Id;
+            InviteMessageId = message.MessageId;
         }
     }
 }

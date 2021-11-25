@@ -31,6 +31,7 @@ namespace Weekend.Workers
                 tasksList.Add(_botClient.KickChatMemberAsync(
                     user.ChatId, user.UserId, DateTime.Now, true));
                 tasksList.Add(_botClient.DeleteMessageAsync(user.ChatId, user.CaptchaMessageId));
+                tasksList.Add(_botClient.DeleteMessageAsync(user.ChatId, user.InviteMessageId));
             }
 
             try
@@ -48,7 +49,9 @@ namespace Weekend.Workers
         {
             var userToAuthorize = UsersAuthorization.FindUserToAuthorize(callbackQuery.From.Id);
 
-            if (callbackQuery.Data == "ne_bot" && userToAuthorize != null)
+            if (callbackQuery.Data == "ne_bot"
+                && userToAuthorize != null
+                && callbackQuery.Message.MessageId == userToAuthorize.CaptchaMessageId)
             {
                 await _botClient.AnswerCallbackQueryAsync(
                     callbackQueryId: callbackQuery.Id,
@@ -58,7 +61,7 @@ namespace Weekend.Workers
                     chatId: callbackQuery.Message.Chat,
                     text: InfoMessages.CreateGreetingNewMemberMsg(userToAuthorize.GetUserAuthMessage()));
 
-                UsersAuthorization.RemoveAuthorizedUser(userToAuthorize);
+                UsersAuthorization.RemoveUserFromAuthorizeProcess(userToAuthorize);
                 await _botClient.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
                 await _botClient.RestrictChatMemberAsync(
                     callbackQuery.Message.Chat.Id, userToAuthorize.UserId, LiberalChatPermissions);
@@ -73,19 +76,13 @@ namespace Weekend.Workers
             foreach (var user in usersToAdd)
             {
                 await _botClient.RestrictChatMemberAsync(message.Chat.Id, user.Id, StrictChatPermissions);
-            }
+                var addingUser = UsersAuthorization.AddNewUserToAuthorizeProcess(user, message);
+                var inlineKeyboard = TextsWorker.CreateInlineButtonsForReply();
 
-            var users = UsersAuthorization.AddNewUsersToAuthorizeProcess(message);
-            var inlineKeyboard = TextsWorker.CreateInlineButtonsForReply();
-            var newUser = usersToAdd[0];
-
-            var sendMessage = await _botClient.SendTextMessageAsync(chatId: message.Chat.Id,
-                text: InfoMessages.CreateCaptchaMessage(newUser.GetUserMessage()),
-                replyMarkup: inlineKeyboard);
-
-            foreach (var user in users)
-            {
-                user.CaptchaMessageId = sendMessage.MessageId;
+                var sendMessage = await _botClient.SendTextMessageAsync(chatId: message.Chat.Id,
+                    text: InfoMessages.CreateCaptchaMessage(user.GetUserMessage()),
+                    replyMarkup: inlineKeyboard);
+                addingUser.CaptchaMessageId = sendMessage.MessageId;
             }
         }
 
