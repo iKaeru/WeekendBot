@@ -7,12 +7,12 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Weekend.Loggers;
 
-// prod bot id = 2044568774
+// Prod Weekend_Bot. User id: 2044568774
+// https://github.com/TelegramBots/Telegram.Bot.Examples
 
 // Disable obsolete warnings
-// #pragma warning disable 612, 618
+#pragma warning disable 612, 618
 
-// https://github.com/TelegramBots/Telegram.Bot.Examples
 namespace Weekend.Workers
 {
     public class TelegramWorkerService
@@ -20,14 +20,13 @@ namespace Weekend.Workers
         private static ITelegramBotClient _botClient;
         private readonly UsersWorker _usersWorker;
         private static Logger _logger;
-        private static readonly string BotToken = Environment.GetEnvironmentVariable("token");
         private static int MaxResponseSkip = 3;
         private static int _currentResponseIndex = 0;
 
-        public TelegramWorkerService(Logger logger)
+        public TelegramWorkerService(ITelegramBotClient botClient, UsersWorker usersWorker, Logger logger)
         {
-            _botClient = new TelegramBotClient(BotToken);
-            _usersWorker = new UsersWorker(_botClient);
+            _botClient = botClient;
+            _usersWorker = usersWorker;
             TextsWorker.Init(_botClient);
             _logger = logger;
         }
@@ -49,12 +48,15 @@ namespace Weekend.Workers
 
         private async void Bot_OnUpdate(object sender, UpdateEventArgs update)
         {
-            await _usersWorker.KickUsersThatNotAuthorizedInTime();
             switch (update.Update.Type)
             {
                 case UpdateType.Message:
                 {
-                    await BotOnMessageReceived(update.Update.Message);
+                    if (IsMessageNotOutdated(update))
+                    {
+                        await BotOnMessageReceived(update.Update.Message);
+                    }
+
                     break;
                 }
                 case UpdateType.CallbackQuery:
@@ -72,12 +74,12 @@ namespace Weekend.Workers
 
         private async Task BotOnMessageReceived(Message message)
         {
-            if (message.NewChatMembers != null)
+            if (message?.NewChatMembers != null)
             {
                 await _usersWorker.CreateCaptchaForNewMember(message);
             }
 
-            if (message.Text != null)
+            if (message?.Text != null)
             {
                 if (message.Chat.Id == message.From?.Id)
                 {
@@ -98,6 +100,12 @@ namespace Weekend.Workers
 
             _currentResponseIndex = 0;
             return true;
+        }
+
+        private static bool IsMessageNotOutdated(UpdateEventArgs update)
+        {
+            var timeDiff = DateTime.Now.ToUniversalTime() - update.Update.Message.Date.ToUniversalTime();
+            return timeDiff.Minutes <= 1 && timeDiff.Hours == 0 && timeDiff.Days == 0;
         }
     }
 }
