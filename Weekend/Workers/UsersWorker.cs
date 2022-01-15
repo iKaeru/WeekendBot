@@ -48,23 +48,30 @@ namespace Weekend.Workers
         public async Task BotOnCallbackQueryReceived(CallbackQuery callbackQuery)
         {
             var userToAuthorize = UsersAuthorization.FindUserToAuthorize(callbackQuery.From.Id);
-
-            if (callbackQuery.Data == "ne_bot"
-                && userToAuthorize != null
-                && callbackQuery.Message.MessageId == userToAuthorize.CaptchaMessageId)
+            if (userToAuthorize != null && callbackQuery.Message.MessageId == userToAuthorize.CaptchaMessageId)
             {
-                await _botClient.AnswerCallbackQueryAsync(
-                    callbackQueryId: callbackQuery.Id,
-                    text: $"Received {callbackQuery.Data}");
+	            if (callbackQuery.Data != userToAuthorize.CaptchaCorrectNumber)
+	            {
+		            await _botClient.KickChatMemberAsync(
+			            userToAuthorize.ChatId, userToAuthorize.UserId, DateTime.Now, true);
+		            await _botClient.DeleteMessageAsync(userToAuthorize.ChatId, userToAuthorize.CaptchaMessageId);
+		            await _botClient.DeleteMessageAsync(userToAuthorize.ChatId, userToAuthorize.InviteMessageId);
+	            }
+	            else
+	            {
+		            await _botClient.AnswerCallbackQueryAsync(
+			            callbackQueryId: callbackQuery.Id,
+			            text: $"Received {callbackQuery.Data}");
 
-                await _botClient.SendTextMessageAsync(
-                    chatId: callbackQuery.Message.Chat,
-                    text: InfoMessages.CreateGreetingNewMemberMsg(userToAuthorize.GetUserAuthMessage()));
+		            await _botClient.SendTextMessageAsync(
+			            chatId: callbackQuery.Message.Chat,
+			            text: InfoMessages.CreateGreetingNewMemberMsg(userToAuthorize.GetUserAuthMessage()));
 
-                UsersAuthorization.RemoveUserFromAuthorizeProcess(userToAuthorize);
-                await _botClient.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
-                await _botClient.RestrictChatMemberAsync(
-                    callbackQuery.Message.Chat.Id, userToAuthorize.UserId, LiberalChatPermissions);
+		            UsersAuthorization.RemoveUserFromAuthorizeProcess(userToAuthorize);
+		            await _botClient.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
+		            await _botClient.RestrictChatMemberAsync(
+			            callbackQuery.Message.Chat.Id, userToAuthorize.UserId, LiberalChatPermissions);
+	            }
             }
         }
 
@@ -79,10 +86,12 @@ namespace Weekend.Workers
                 var addingUser = UsersAuthorization.AddNewUserToAuthorizeProcess(user, message);
                 var inlineKeyboard = TextsWorker.CreateInlineButtonsForReply();
 
+                var randomNumber = new Random().Next(1, 4).ToString();
                 var sendMessage = await _botClient.SendTextMessageAsync(chatId: message.Chat.Id,
-                    text: InfoMessages.CreateCaptchaMessage(user.GetUserMessage()),
+                    text: InfoMessages.CreateCaptchaMessage(user.GetUserMessage(), randomNumber),
                     replyMarkup: inlineKeyboard);
                 addingUser.CaptchaMessageId = sendMessage.MessageId;
+                addingUser.CaptchaCorrectNumber = randomNumber;
             }
         }
 

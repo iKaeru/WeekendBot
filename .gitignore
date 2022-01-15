@@ -1,5 +1,6 @@
 # Rider
 .idea
+.vs
 
 # User-specific files
 *.user
@@ -7,3 +8,6 @@
 # Build results
 Weekend/bin
 Weekend/obj
+
+# Build config
+Weekend/Properties/

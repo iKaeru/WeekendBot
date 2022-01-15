@@ -53,6 +53,7 @@ namespace Weekend.Helpers
         public DateTime AddedAt { get; private set; }
         public int CaptchaMessageId { get; set; }
         public int InviteMessageId { get; set; }
+        public string CaptchaCorrectNumber { get; set; }
 
         public AuthorizationInfo(User user, Message message)
         {

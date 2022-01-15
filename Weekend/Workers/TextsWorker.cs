@@ -21,7 +21,9 @@ namespace Weekend.Workers
             {
                 new[]
                 {
-                    InlineKeyboardButton.WithCallbackData("Я не бот", "ne_bot"),
+	                InlineKeyboardButton.WithCallbackData("Нажми 1", "1"),
+	                InlineKeyboardButton.WithCallbackData("Нажми 2", "2"),
+	                InlineKeyboardButton.WithCallbackData("Нажми 3", "3"),
                 }
             });
         }
