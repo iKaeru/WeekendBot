@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Weekend.Loggers;
+using Weekend.Models;
 using Weekend.Workers;
 
 namespace Weekend
@@ -13,6 +14,7 @@ namespace Weekend
 
         static async Task Main(string[] args)
         {
+            StickersStorage.Initialize();
             var usersWorker = new UsersWorker(BotClient);
             var worker = new TelegramWorkerService(BotClient, usersWorker, new Logger());
             Task taskA = new Task(async () => await SheduledWorker.EnableBackgroundScheduler(usersWorker));

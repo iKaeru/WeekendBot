@@ -1,4 +1,5 @@
 using Telegram.Bot.Types;
+using Weekend.Models;
 
 namespace Weekend.Helpers
 {
