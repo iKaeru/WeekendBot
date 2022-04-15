@@ -6,7 +6,7 @@ namespace Weekend.Helpers
 	public static class Emojis
 	{
 		// https://apps.timwhitlock.info/unicode/inspect/hex/1F600-1F64F
-		private static string[] emojiValues =
+		private static readonly string[] emojiValues =
 		{
 			"\U0001F600", "\U0001F601", "\U0001F602", "\U0001F603", "\U0001F604", "\U0001F605", "\U0001F606",
 			"\U0001F607", "\U0001F608", "\U0001F609", "\U0001F60A", "\U0001F60B", "\U0001F60C", "\U0001F60D",

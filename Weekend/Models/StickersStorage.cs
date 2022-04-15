@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Telegram.Bot.Types;
+using Weekend.Enums;
 
 namespace Weekend.Models
 {

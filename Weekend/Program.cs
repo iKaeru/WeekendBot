@@ -14,10 +14,13 @@ namespace Weekend
 
         static async Task Main(string[] args)
         {
-			TextFilesParser.ParseAllTrickFiles();
+			TricksTextFilesParser.ParseAllTrickFiles();
 			StickersStorage.Initialize();
             var usersWorker = new UsersWorker(BotClient);
-            var worker = new TelegramWorkerService(BotClient, usersWorker, new Logger());
+            Console.WriteLine("Trying to get bot name");
+            var botName = await BotClient.GetMeAsync();
+            Console.WriteLine($"Bot name recieved: {botName}");
+            var worker = new TelegramWorkerService(BotClient, botName, usersWorker, new Logger());
             Task taskA = new Task(async () => await SheduledWorker.EnableBackgroundScheduler(usersWorker));
             taskA.Start();
             worker.ExecuteCore();

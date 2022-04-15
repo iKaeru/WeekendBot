@@ -1,4 +1,6 @@
-﻿namespace Weekend.Models
+﻿using Weekend.Enums;
+
+namespace Weekend.Models
 {
 	public class TrickInfo
 	{

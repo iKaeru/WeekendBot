@@ -21,11 +21,11 @@ namespace Weekend.Workers
 		private readonly UsersWorker _usersWorker;
 		private static Logger _logger;
 
-		public TelegramWorkerService(ITelegramBotClient botClient, UsersWorker usersWorker, Logger logger)
+		public TelegramWorkerService(ITelegramBotClient botClient, User botInfo, UsersWorker usersWorker, Logger logger)
 		{
 			_botClient = botClient;
 			_usersWorker = usersWorker;
-			TextsWorker.Init(_botClient);
+			TextsWorker.Init(_botClient, botInfo);
 			_logger = logger;
 		}
 

@@ -3,8 +3,10 @@ using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using Weekend.Enums;
 using Weekend.Helpers;
 using Weekend.Models;
+using BotCommands = Weekend.Enums.BotCommands;
 
 namespace Weekend.Workers
 {
@@ -12,12 +14,14 @@ namespace Weekend.Workers
 	{
 		private static ITelegramBotClient _botClient;
 
+		private static User _botInfo;
 		private static int _maxResponseSkip = 3;
 		private static int _currentFlipAndClickResponseIndex = _maxResponseSkip;
 
-		public static void Init(ITelegramBotClient botClient)
+		public static void Init(ITelegramBotClient botClient, User botInfo)
 		{
 			_botClient = botClient;
+			_botInfo = botInfo;
 		}
 
 		public static InlineKeyboardMarkup CreateInlineButtonsForReply()
@@ -44,6 +48,11 @@ namespace Weekend.Workers
 
 		public static async Task ReplyInGroupChat(Message message)
 		{
+			if (ProcessCommand(message))
+			{
+				return;
+			}
+
 			var messageText = message.Text.ToLower();
 
 			if (IsReplyAvailable(ref _currentFlipAndClickResponseIndex))
@@ -71,6 +80,21 @@ namespace Weekend.Workers
 					return;
 				}
 			}
+		}
+
+		private static bool ProcessCommand(Message message)
+		{
+			foreach (var botCommand in (BotCommands[]) Enum.GetValues(typeof(BotCommands)))
+			{
+				if (message.Text.StartsWith($"/{botCommand.GetString()}@{_botInfo.Username}"))
+				{
+					Console.WriteLine("Found!");
+					return true;
+				}
+			}
+			
+
+			return false;
 		}
 
 		private static bool IsReplyAvailable(ref int currentIndex)

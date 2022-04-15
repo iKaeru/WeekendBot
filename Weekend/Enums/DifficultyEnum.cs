@@ -1,4 +1,4 @@
-﻿namespace Weekend.Models
+﻿namespace Weekend.Enums
 {
 	public enum Difficulty
 	{

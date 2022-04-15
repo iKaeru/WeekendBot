@@ -3,7 +3,7 @@ using Weekend.Models;
 
 namespace Weekend.Helpers
 {
-    public static class Extensions
+    public static class UserNamesExtensions
     {
         public static string GetTaggedUserMessageWithNames(this User user)
         {
