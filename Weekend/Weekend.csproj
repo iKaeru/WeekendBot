@@ -9,4 +9,13 @@
       <PackageReference Include="Telegram.Bot" Version="16.0.2" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="Files\HardTricks.txt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Files\RandomTricks.txt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

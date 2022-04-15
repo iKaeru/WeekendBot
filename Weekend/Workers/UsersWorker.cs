@@ -65,7 +65,7 @@ namespace Weekend.Workers
 
 		            await _botClient.SendTextMessageAsync(
 			            chatId: callbackQuery.Message.Chat,
-			            text: InfoMessages.CreateGreetingNewMemberMsg(userToAuthorize.GetUserAuthMessage()));
+			            text: InfoMessages.CreateGreetingNewMemberMsg(userToAuthorize.GetTaggedUserAuthMessageWithNames()));
 
 		            UsersAuthorization.RemoveUserFromAuthorizeProcess(userToAuthorize);
 		            await _botClient.DeleteMessageAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
@@ -88,7 +88,7 @@ namespace Weekend.Workers
 
                 var randomNumber = new Random().Next(1, 4).ToString();
                 var sendMessage = await _botClient.SendTextMessageAsync(chatId: message.Chat.Id,
-                    text: InfoMessages.CreateCaptchaMessage(user.GetUserMessage(), randomNumber),
+                    text: InfoMessages.CreateCaptchaMessage(user.GetTaggedUserMessageWithNames(), randomNumber),
                     replyMarkup: inlineKeyboard);
                 addingUser.CaptchaMessageId = sendMessage.MessageId;
                 addingUser.CaptchaCorrectNumber = randomNumber;

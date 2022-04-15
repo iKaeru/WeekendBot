@@ -14,7 +14,8 @@ namespace Weekend
 
         static async Task Main(string[] args)
         {
-            StickersStorage.Initialize();
+			TextFilesParser.ParseAllTrickFiles();
+			StickersStorage.Initialize();
             var usersWorker = new UsersWorker(BotClient);
             var worker = new TelegramWorkerService(BotClient, usersWorker, new Logger());
             Task taskA = new Task(async () => await SheduledWorker.EnableBackgroundScheduler(usersWorker));

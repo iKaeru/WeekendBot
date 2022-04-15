@@ -62,11 +62,6 @@ namespace Weekend.Workers
 					await _usersWorker.BotOnCallbackQueryReceived(update.Update.CallbackQuery);
 					break;
 				}
-				default:
-				{
-					Console.WriteLine("Unknown handler");
-					break;
-				}
 			}
 		}
 

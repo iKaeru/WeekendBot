@@ -64,7 +64,7 @@ namespace Weekend.Workers
 
 			foreach (var stickerValue in (ChatSticker[]) Enum.GetValues(typeof(ChatSticker)))
 			{
-				if (StickersStorage.IsStickerTriggered(stickerValue, message) &&
+				if (StickersStorage.IsStickerTriggered(stickerValue, messageText) &&
 				    StickersStorage.IsResponseAvailable(stickerValue))
 				{
 					await SendSticker(message, StickersStorage.GetStickerId(stickerValue));

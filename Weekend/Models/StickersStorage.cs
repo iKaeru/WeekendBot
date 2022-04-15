@@ -43,7 +43,8 @@ namespace Weekend.Models
 						_maxResponseSkip,
 						new List<string>
 						{
-							"timur", "тимур", "totoev", "тотоев", "pepper", "peper", "пеппер", "пепер", "пепир", "пипер"
+							"timur", "тимур", "totoev", "тотоев", "pepper", "peper", "пеппер", "пепер",
+							"пепир", "пеппир", "пипер", "пиппер", "пипир", "пиппир"
 						})
 				},
 				{
@@ -90,9 +91,9 @@ namespace Weekend.Models
 			return true;
 		}
 
-		public static bool IsStickerTriggered(ChatSticker key, Message message)
+		public static bool IsStickerTriggered(ChatSticker key, string message)
 		{
-			return _stickersIdsAndCount[key].TriggerPhrases.Any(message.Text.Contains);
+			return _stickersIdsAndCount[key].TriggerPhrases.Any(message.Contains);
 		}
 
 		public static string GetStickerId(ChatSticker key)
