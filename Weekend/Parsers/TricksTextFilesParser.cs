@@ -4,21 +4,24 @@ using System.IO;
 using System.Linq;
 using Weekend.Models;
 using Weekend.Enums;
+using Weekend.Helpers;
 
 namespace Weekend.Workers
 {
 	public static class TricksTextFilesParser
 	{
-		private static List<TrickInfo> _randomTricks = new List<TrickInfo>();
-		private static List<TrickInfo> _hardTricks = new List<TrickInfo>();
-
-		public static List<TrickInfo> RandomTricks => _randomTricks;
-		public static List<TrickInfo> HardTricks => _hardTricks;
+		public static List<TrickInfo> RandomTricks { get; private set; } = new List<TrickInfo>();
+		public static List<TrickInfo> HardTricks { get; private set; } = new List<TrickInfo>();
 
 		public static void ParseAllTrickFiles()
 		{
-			ParseTextFileWithTricks(Path.Combine(Environment.CurrentDirectory, @"Files\", "RandomTricks.txt"), Difficulty.Easy);
-			ParseTextFileWithTricks(Path.Combine(Environment.CurrentDirectory, @"Files\", "HardTricks.txt"), Difficulty.Hard);
+			foreach (var tricksStorage in PathsConstants.TricksStorages)
+			{
+				ParseTextFileWithTricks(
+					PathResolver.GetFilesPathWithFile(PathsConstants.FilesFolder, tricksStorage.Item1),
+					tricksStorage.Item2);
+			}
+
 			Console.WriteLine("All trick files are successfully parsed");
 		}
 
@@ -39,16 +42,17 @@ namespace Weekend.Workers
 				}
 			}
 
+			Console.WriteLine($"Saved {resultCollection.Count} tricks of {difficulty} difficulty");
 			switch (difficulty)
 			{
 				case Difficulty.Easy:
 				{
-					_randomTricks = resultCollection;
+					RandomTricks = resultCollection;
 					break;
 				}
 				case Difficulty.Hard:
 				{
-					_hardTricks = resultCollection;
+					HardTricks = resultCollection;
 					break;
 				}
 				default:

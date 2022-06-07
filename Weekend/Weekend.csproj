@@ -13,6 +13,12 @@
       <None Update="Files\HardTricks.txt">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="Files\RandomTricks_users.txt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Files\HardTricks_users.txt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
       <None Update="Files\RandomTricks.txt">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>

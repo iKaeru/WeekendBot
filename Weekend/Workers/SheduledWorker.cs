@@ -17,6 +17,11 @@ namespace Weekend.Workers
                 if (nowInMilliseconds - _lastSavedTime > _timerInterval)
                 {
                     await usersWorker.KickUsersThatNotAuthorizedInTime();
+                    if (UserOwnedTricksProcessor.AreOwnedTricksOutdated())
+                    {
+                        UserOwnedTricksParser.CleanAllOwnedTricks();
+                    }
+
                     _lastSavedTime = nowInMilliseconds;
                 }
 
